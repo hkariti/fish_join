@@ -1,0 +1,11 @@
+.DS_Store
+
+# vim
+.*.swp
+
+# python
+*.pyc
+.venv
+
+# data
+data_files/
