@@ -6,19 +6,22 @@ import qupath.lib.gui.commands.ProjectCommands
 //Did we receive a string via the command line args keyword?
 if (args.size() > 0)
     imageList = new File(args[0])
-else
-    imageList = Dialogs.promptForFile("Select file with image list", null, null, null)
-
-if (imageList == null)
+else {
+    println("Expected args: image_list_filename [projectPath]")
     return
-    
-//Check if we already have a QuPath Project directory in there...
-projectName = "fish_join_qupath"
+}
+
+if (args.size() > 1)
+    projectName = args[1]
+else
+    projectName = "fish_join_qupath"
 File directory = new File(projectName)
 
+println("Using project dir: " + projectName)
+//Check if we already have a QuPath Project directory in there...
 if (!directory.exists())
 {
-    print("No project directory, creating one!")
+    println("No project directory, creating one!")
     directory.mkdirs()
 }
 
@@ -33,11 +36,11 @@ imageList.eachLine { file ->
     def builder = support.builders.get(0)
     // Make sure we don't have null 
     if (builder == null) {
-       print "Image not supported: " + imagePath
+       println("Image not supported: " + imagePath)
        return
     }
     // Add the image as entry to the project
-    print "Adding: " + imagePath
+    println("Adding: " + imagePath)
     entry = project.addImage(builder)
 
     // Add an entry name (the filename)
