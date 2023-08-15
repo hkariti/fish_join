@@ -3,7 +3,8 @@ import subprocess
 import json
 from glob import fnmatch
 
-import il import IJ
+from ij import IJ
+from ij.plugin import ChannelSplitter
 
 tmp_dir = os.environ['TMPDIR']
 directory = "/Users/hkariti/repo/technion/fish_join/data_files"
@@ -63,7 +64,59 @@ def segment_nuclei_qupath(file_list_path, params_override={}):
     qupath_script('qupath_create_project.groovy', args=[file_list, qupath_project])
     IJ.log("Detecting nuclei")
     qupath_script( 'qupath_get_nuclei.groovy', args=[params_json], project=qupath_project)
+    IJ.log("Done")
         
+def mark_dots(file_list_path, channels=[1,2,3], params_override={}):
+    #results_path_pattern
+    default_params = {
+#       "image": imName 
+        "mode": "Advanced",
+        "anisotropy": 1.4,
+        "robust_fitting": "[RANSAC]",
+        "use_anisotropy": True,
+        "image_min": 190,
+        "image_max": 255,
+        "sigma": 1.4,
+        "threshold": 0.007,
+        "support": 2,
+        "min_inlier_ratio": 0.0,
+        "max_error": 0.9,
+        "spot_intensity_threshold": 0,
+        "background": "[No background subtraction]",
+        "background_subtraction_max_error": 0.05,
+        "background_subtraction_min_inlier_ratio": 0.0,
+#       "results_file": "[" + results_csv_path + "]",
+        "use_multithreading": True,
+        "num_threads": 40,
+        "block_size_x": 128,
+        "block_size_y": 128,
+        "block_size_z": 16,
+    }
+
+    params = {}
+    for ch in channels:
+        params[ch] = default_params.copy()
+        if ch in params_override:
+            params[ch].update(params_override[ch])
+    
+    for file_path in open(file_list_path):
+        file_path = file_path.strip()
+        IJ.log("Opening image: " + file_path)
+        imp = IJ.openImage(file_path)
+        IJ.log("Splitting to channels")
+        imp_channels = ChannelSplitter.split(imp)
+        IJ.log("Using channels: " + channels)
+        imp_channels = imp_channels[channels]
+
+        for ch in channels:
+            IJ.log("Processing channel {}".format(ch))
+            imp_ch = imp_channels[ch]
+            params_ch = params[ch]
+            process_channel(imp_ch, params_ch)
+        
+def process_channel(imp, params):
+    pass
 
 file_list = create_file_list(directory, pattern)
-segment_nuclei_qupath(file_list, **params_override)
+#segment_nuclei_qupath(file_list, **params_override)
+mark_dots(file_list)
