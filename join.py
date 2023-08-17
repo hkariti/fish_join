@@ -2,17 +2,21 @@ import csv
 import json
 
 
-def join_data_files(nuclei_json, dots_csv):
+def join_from_csv(nuclei, csv_filename, additional_fields={}):
     """
-    Run join on all dots and nuclei from the given data files
+    Join all dots from the given csv with the given list of nuclei.
+
+    Returns a list of dicts, each corresponding to a row in the CSV, with
+    additional 'nucleus_id' field. Additional fields will be added from the
+    additional_fields parameter.
     """
-    nuclei = parse_nuclei_geojson(json.load(open(nuclei_json)))
-    dots = prepare_dots_csv(csv.DictReader(open(dots_csv)))
+    dots = prepare_dots_csv(csv.DictReader(open(csv_filename)))
 
     for d in dots:
-        d['nuclei_id'] = find_matching_nuclei(nuclei, d)
+        d['nucleus_id'] = find_matching_nuclei(nuclei, d)
+        d.update(additional_fields)
 
-    return nuclei, dots
+    return dots
 
 def find_matching_nuclei(nuclei, dot):
     """
@@ -24,26 +28,6 @@ def find_matching_nuclei(nuclei, dot):
         if _is_point_inside_polygon(n['polygon'], coords):
             return n['id']
     return None
-
-def parse_nuclei_geojson(geojson):
-    nuclei = []
-    index = 0
-    for feature in geojson['features']:
-        try:
-            if feature['properties']['objectType'] != 'cell':
-                continue
-        except KeyError:
-            continue
-        try:
-            polygon = feature['nucleusGeometry']['coordinates'][0]
-            nuclei.append(dict(id=index, polygon=polygon))
-        except KeyError, IndexError:
-            print("parse_nuclei_geojson: nuclei {} is bad, skipping".format(index))
-            continue
-        finally:
-            index += 1
-
-    return nuclei
 
 def prepare_dots_csv(csv_dict):
     """
