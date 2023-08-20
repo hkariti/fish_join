@@ -23,9 +23,7 @@ script_dir = '/Users/hkariti/repo/technion/fish_join'
 image_join_output_pattern = '{image_path}_nuclei_dots_joined.csv'
 image_nuclei_output_pattern = '{image_path}_nuclei.json'
 global_join_output_filename = 'nuclei_dots_joined.csv'
-global_join_output_path = os.path.join(directory, global_join_output_filename)
 global_nuclei_output_filename = 'nuclei.json'
-global_nuclei_output_path = os.path.join(directory, global_nuclei_output_filename)
 
 
 def create_file_list(directory, pattern):
@@ -60,7 +58,7 @@ class QuPathSegmentor:
 
     def __init__(self, channel, qupath_executable='QuPath', tmp_dir='/tmp', script_dir='.', keep_project_dir=False, params_override={}):
         self.channel = channel
-        self.qupath_exeuctable = qupath_executable
+        self.qupath_executable = qupath_executable
         self.tmp_dir = tmp_dir
         self.script_dir = script_dir
         self._qupath_project_filename = 'project.qpproj'
@@ -89,9 +87,9 @@ class QuPathSegmentor:
     def process_file_list(self, file_list_path):
         qupath_project = os.path.join(self.tmp_dir, 'qupath')
         IJ.log("QuPathSegmentor: creating QuPath project")
-        qupath_script('qupath_create_project.groovy', args=[file_list_path, qupath_project])
+        self.qupath_script('qupath_create_project.groovy', args=[file_list_path, qupath_project])
         IJ.log("QuPathSegmentor: detecting nuclei")
-        qupath_script( 'qupath_get_nuclei.groovy', args=[self.params_json], project=qupath_project)
+        self.qupath_script( 'qupath_get_nuclei.groovy', args=[self.params_json], project=qupath_project)
         if not self.keep_project_dir:
             IJ.log("QuPathSegmentor: cleaning up QuPath project")
             shutil.rmtree(qupath_project)
@@ -145,7 +143,6 @@ class QuPathSegmentor:
 
         return filename + '_nuclei.geojson'
 
-        
 
 class RSFISHSegmentor:
     _default_params = {
@@ -227,41 +224,71 @@ class RSFISHSegmentor:
         return param_str.strip()
             
 
-file_list = create_file_list(directory, pattern)
-nuclei_segmentor = QuPathSegmentor(nuclei_channel, qupath_executable, tmp_dir, script_dir, params_override=nuclei_params_override)
-#nuclei_segmentor.process_file_list(file_list)
-dots_segmentor = RSFISHSegmentor(channels=dots_channels, params_override=dots_params_override)
+class BatchRunner:
+    image_join_headers = ['x', 'y', 't', 'c', 'intensity', 'nucleus_id', 'channel']
+    global_join_headers = image_join_headers + ['filename']
 
-with open(global_join_output_path, 'w') as global_join, open(global_nuclei_output_path, 'w') as global_nuclei:
-    global_join_output = csv.DictWriter(global_join, fieldnames=['x', 'y', 't', 'c', 'intensity', 'nucleus_id', 'channel', 'filename'], extrasaction='ignore' )
-    global_join_output.writeheader()
-    for file_idx, file_path in enumerate(open(file_list)):
-        file_path = file_path.strip()
-        nuclei = nuclei_segmentor.get_image_nuclei(file_path)
-        dots_filenames = dots_segmentor.process_image(file_path)
+    def __init__(self, nuclei_segmentor, dots_segmentor, base_directory, global_join_filename, global_nuclei_filename, image_join_pattern, image_nuclei_pattern):
+        self.nuclei_segmentor = nuclei_segmentor
+        self.dots_segmentor = dots_segmentor
+        self.base_dir = base_directory
+        self.global_join_filename = global_join_filename
+        self.global_nuclei_filename = global_nuclei_filename
+        self.image_join_pattern = image_join_pattern
+        self.image_nuclei_pattern = image_nuclei_pattern
 
-        image_nuclei_output_filename = image_nuclei_output_pattern.format(image_path=file_path)
-        with open(image_nuclei_output_filename, 'w') as image_nuclei:
-            image_nuclei.write('[\n')
+    def run(self, file_list):
+        global_join_path = os.path.join(self.base_dir, self.global_join_filename)
+        global_nuclei_path = os.path.join(self.base_dir, self.global_nuclei_filename)
+
+        with open(global_join_path, 'w') as global_join_fd, open(global_nuclei_path, 'w') as global_nuclei:
+            global_join = csv.DictWriter(global_join_fd, fieldnames=self.global_join_headers, extrasaction='ignore' )
+            global_join.writeheader()
             global_nuclei.write('[\n')
-            for idx, n in enumerate(nuclei):
-                if idx == 0:
-                    image_nuclei.write(json.dumps(n))
-                else:
-                    image_nuclei.write(',' + json.dumps(n))
-                n['filename'] = file_path
-                if idx == 0 and file_idx == 0:
-                    global_nuclei.write(json.dumps(n))
-                else:
-                    global_nuclei.write(',' + json.dumps(n))
-            image_nuclei.write(']\n')
+            self._iterate_file_list(file_list, global_join, global_nuclei)
             global_nuclei.write(']\n')
 
-        image_join_output_filename = image_join_output_pattern.format(image_path=file_path)
-        with open(image_join_output_filename, 'w') as image_join:
-            image_join_output = csv.DictWriter(image_join, extrasaction='ignore', fieldnames=['x', 'y', 't', 'c', 'intensity', 'nucleus_id', 'channel'])
-            image_join_output.writeheader()
-            for ch, csv_file in zip(dots_segmentor.channels, dots_filenames):
-                csv_out = join.join_from_csv(nuclei, csv_file, dict(channel=ch, filename=file_path))
-                image_join_output.writerows(csv_out)
-                global_join_output.writerows(csv_out)
+    def _iterate_file_list(self, file_list, global_join, global_nuclei):
+        for file_idx, file_path in enumerate(open(file_list)):
+            file_path = file_path.strip()
+            nuclei = self.nuclei_segmentor.get_image_nuclei(file_path)
+            dots_filenames = self.dots_segmentor.process_image(file_path)
+
+            image_nuclei_filename = self.image_nuclei_pattern.format(image_path=file_path)
+            with open(image_nuclei_filename, 'w') as image_nuclei:
+                self._write_nuclei(nuclei, global_nuclei, image_nuclei, file_path, file_idx == 0)
+
+            image_join_output_filename = self.image_join_pattern.format(image_path=file_path)
+            with open(image_join_output_filename, 'w') as image_join:
+                self._write_join(dots_segmentor.channels, dots_filenames, nuclei, image_join, global_join, file_path)
+
+    def _write_nuclei(self, nuclei, global_nuclei, image_nuclei, file_path, is_first_file):
+        image_nuclei.write('[\n')
+        for idx, n in enumerate(nuclei):
+            if idx == 0:
+                image_nuclei.write(json.dumps(n))
+            else:
+                image_nuclei.write(',' + json.dumps(n))
+            n['filename'] = file_path
+            if idx == 0 and is_first_file:
+                global_nuclei.write(json.dumps(n))
+            else:
+                global_nuclei.write(',' + json.dumps(n))
+        image_nuclei.write(']\n')
+
+    def _write_join(self, channels, filenames, nuclei, image_join, global_join, file_path):
+        image_join_output = csv.DictWriter(image_join, extrasaction='ignore', fieldnames=self.image_join_headers)
+        image_join_output.writeheader()
+        for ch, csv_file in zip(dots_segmentor.channels, filenames):
+            csv_out = join.join_from_csv(nuclei, csv_file, dict(channel=ch, filename=file_path))
+            image_join_output.writerows(csv_out)
+            global_join.writerows(csv_out)
+
+
+file_list = create_file_list(directory, pattern)
+nuclei_segmentor = QuPathSegmentor(nuclei_channel, qupath_executable, tmp_dir, script_dir, params_override=nuclei_params_override)
+nuclei_segmentor.process_file_list(file_list)
+dots_segmentor = RSFISHSegmentor(channels=dots_channels, params_override=dots_params_override)
+batch_runner = BatchRunner(nuclei_segmentor, dots_segmentor, directory, global_join_output_filename, global_nuclei_output_filename, image_join_output_pattern, image_nuclei_output_pattern)
+batch_runner.run(file_list)
+
