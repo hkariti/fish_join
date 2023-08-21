@@ -20,11 +20,10 @@ nuclei_channel = 4
 dots_channels = [1,2,3]
 dots_params_override = json.loads('{}')
 qupath_executable = '/Applications/QuPath.app/Contents/MacOS/QuPath'
-script_dir = '/Users/hkariti/repo/technion/fish_join/fish_join_modules/'
 show_results_table = True
 
 
-def create_file_list(directory, pattern):
+def create_file_list(directory, pattern, tmp_dir='/tmp'):
 	file_list_path = os.path.join(tmp_dir, 'qupath_file_list')
 	file_list = open(file_list_path, 'w')
 	for path, _, filenames in os.walk(directory):
@@ -48,8 +47,8 @@ class BatchRunner:
         self.base_dir = base_directory
 
     def run(self, file_list):
-        global_join_path = os.path.join(self.base_dir, global_join_filename)
-        global_nuclei_path = os.path.join(self.base_dir, global_nuclei_filename)
+        global_join_path = global_join_filename(self.base_dir)
+        global_nuclei_path = global_nuclei_filename(self.base_dir)
 
         IJ.log("Starting dots processing")
         with open(global_join_path, 'w') as global_join_fd, open(global_nuclei_path, 'w') as global_nuclei:
@@ -98,8 +97,8 @@ class BatchRunner:
 
 
 def main():
-    file_list = create_file_list(directory, pattern)
-    nuclei_segmentor = QuPathSegmentor(nuclei_channel, qupath_executable, tmp_dir, script_dir, params_override=nuclei_params_override)
+    file_list = create_file_list(directory, pattern, tmp_dir)
+    nuclei_segmentor = QuPathSegmentor(nuclei_channel, qupath_executable, tmp_dir, params_override=nuclei_params_override)
     nuclei_segmentor.process_file_list(file_list)
     dots_segmentor = RSFISHSegmentor(channels=dots_channels, params_override=dots_params_override)
     batch_runner = BatchRunner(nuclei_segmentor, dots_segmentor, directory)

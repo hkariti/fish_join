@@ -5,6 +5,7 @@ import subprocess
 
 from ij import IJ
 
+SCRIPT_DIR = os.path.dirname(__file__)
 
 class QuPathSegmentor:
     _default_params = {"detectionImage": "Channel {channel}", 
@@ -22,11 +23,10 @@ class QuPathSegmentor:
                        "smoothBoundaries": True, 
                        "makeMeasurements": True }
 
-    def __init__(self, channel, qupath_executable='QuPath', tmp_dir='/tmp', script_dir='.', keep_project_dir=False, params_override={}):
+    def __init__(self, channel, qupath_executable='QuPath', tmp_dir='/tmp', keep_project_dir=False, params_override={}):
         self.channel = channel
         self.qupath_executable = qupath_executable
         self.tmp_dir = tmp_dir
-        self.script_dir = script_dir
         self._qupath_project_filename = 'project.qpproj'
         self.keep_project_dir = keep_project_dir
 
@@ -36,7 +36,7 @@ class QuPathSegmentor:
         self.params_json = json.dumps(params)
 
     def qupath_script(self, script_name, project=None, args=[]):
-        script_path = os.path.join(self.script_dir, script_name)
+        script_path = os.path.join(SCRIPT_DIR, script_name)
         cmdline = [self.qupath_executable, 'script', script_path]
         if project is not None:
             if os.path.isdir(project):
