@@ -2,11 +2,7 @@ import json
 from ij import IJ, ImagePlus, WindowManager
 from ij.gui import Overlay, Roi, PolygonRoi
 
-# TODO: REMOVE
-import os
-import sys
-sys.path.append(os.path.dirname(__file__))
-import fiji_module
+import fish_join_modules.output_filenames as output_filenames
 
 
 def add_polygon_overlay(imp, polygon_edges, label=None, overlay=None):
@@ -55,7 +51,7 @@ def annotate(image=None, nucleus_id=None):
     image_path = _get_imp_file_path(_imp)
     imp = _imp.duplicate()  # Create a duplicate of the image to prevent modification of the original
 
-    nuclei_path = fiji_module.image_nuclei_filename(image_path)
+    nuclei_path = output_filenames.image_nuclei_filename(image_path)
     nuclei = json.load(open(nuclei_path))
     if nucleus_id is None:
         chosen_nuclei = nuclei
