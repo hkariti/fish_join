@@ -1,6 +1,6 @@
 import os
 
-from ij import IJ
+from ij import IJ, WindowManager
 from ij.plugin import ChannelSplitter
 
 
@@ -56,6 +56,9 @@ class RSFISHSegmentor:
             IJ.log("RSFISHSegmentor: {}: channel {}: saving to {}".format(image_title, ch, result_file_path))
             self.process_channel(imp_ch, result_file_path, params_ch)
             output_filenames.append(result_file_path)
+        rt = WindowManager.getWindow('smFISH localizations')
+        if rt:
+            rt.close()
         IJ.log("RSFISHSegmentor: {}: done".format(image_title))
 
         return output_filenames
