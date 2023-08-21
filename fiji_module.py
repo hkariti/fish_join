@@ -251,14 +251,15 @@ class BatchRunner:
     def _iterate_file_list(self, file_list, global_join, global_nuclei):
         for file_idx, file_path in enumerate(open(file_list)):
             file_path = file_path.strip()
+            image_path = os.path.splitext(file_path)[0] # Used for templating csv file names
             nuclei = self.nuclei_segmentor.get_image_nuclei(file_path)
             dots_filenames = self.dots_segmentor.process_image(file_path)
 
-            image_nuclei_filename = self.image_nuclei_pattern.format(image_path=file_path)
+            image_nuclei_filename = self.image_nuclei_pattern.format(image_path=image_path)
             with open(image_nuclei_filename, 'w') as image_nuclei:
                 self._write_nuclei(nuclei, global_nuclei, image_nuclei, file_path, file_idx == 0)
 
-            image_join_output_filename = self.image_join_pattern.format(image_path=file_path)
+            image_join_output_filename = self.image_join_pattern.format(image_path=image_path)
             with open(image_join_output_filename, 'w') as image_join:
                 self._write_join(dots_segmentor.channels, dots_filenames, nuclei, image_join, global_join, file_path)
 
