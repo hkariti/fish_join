@@ -261,7 +261,7 @@ class BatchRunner:
 
             image_join_output_filename = self.image_join_pattern.format(image_path=image_path)
             with open(image_join_output_filename, 'w') as image_join:
-                self._write_join(dots_segmentor.channels, dots_filenames, nuclei, image_join, global_join, file_path)
+                self._write_join(self.dots_segmentor.channels, dots_filenames, nuclei, image_join, global_join, file_path)
 
     def _write_nuclei(self, nuclei, global_nuclei, image_nuclei, file_path, is_first_file):
         image_nuclei.write('[\n')
@@ -280,7 +280,7 @@ class BatchRunner:
     def _write_join(self, channels, filenames, nuclei, image_join, global_join, file_path):
         image_join_output = csv.DictWriter(image_join, extrasaction='ignore', fieldnames=self.image_join_headers)
         image_join_output.writeheader()
-        for ch, csv_file in zip(dots_segmentor.channels, filenames):
+        for ch, csv_file in zip(self.dots_segmentor.channels, filenames):
             csv_out = join.join_from_csv(nuclei, csv_file, dict(channel=ch, filename=file_path))
             image_join_output.writerows(csv_out)
             global_join.writerows(csv_out)
