@@ -20,10 +20,16 @@ dots_params_override = json.loads('{}')
 qupath_executable = '/Applications/QuPath.app/Contents/MacOS/QuPath'
 script_dir = '/Users/hkariti/repo/technion/fish_join'
 
-image_join_output_pattern = '{image_path}_nuclei_dots_joined.csv'
-image_nuclei_output_pattern = '{image_path}_nuclei.json'
-global_join_output_filename = 'nuclei_dots_joined.csv'
-global_nuclei_output_filename = 'nuclei.json'
+def image_join_filename(image_path):
+    no_ext_path = os.path.splitext(image_path)[0]
+    return no_ext_path + '_nuclei_dots_joined.csv'
+
+def image_nuclei_filename(image_path):
+    no_ext_path = os.path.splitext(image_path)[0]
+    return no_ext_path + '_nuclei.json'
+
+global_join_filename = 'nuclei_dots_joined.csv'
+global_nuclei_filename = 'nuclei.json'
 
 
 def create_file_list(directory, pattern):
@@ -228,18 +234,14 @@ class BatchRunner:
     image_join_headers = ['x', 'y', 't', 'c', 'intensity', 'nucleus_id', 'channel']
     global_join_headers = image_join_headers + ['filename']
 
-    def __init__(self, nuclei_segmentor, dots_segmentor, base_directory, global_join_filename, global_nuclei_filename, image_join_pattern, image_nuclei_pattern):
+    def __init__(self, nuclei_segmentor, dots_segmentor, base_directory):
         self.nuclei_segmentor = nuclei_segmentor
         self.dots_segmentor = dots_segmentor
         self.base_dir = base_directory
-        self.global_join_filename = global_join_filename
-        self.global_nuclei_filename = global_nuclei_filename
-        self.image_join_pattern = image_join_pattern
-        self.image_nuclei_pattern = image_nuclei_pattern
 
     def run(self, file_list):
-        global_join_path = os.path.join(self.base_dir, self.global_join_filename)
-        global_nuclei_path = os.path.join(self.base_dir, self.global_nuclei_filename)
+        global_join_path = os.path.join(self.base_dir, global_join_filename)
+        global_nuclei_path = os.path.join(self.base_dir, global_nuclei_filename)
 
         with open(global_join_path, 'w') as global_join_fd, open(global_nuclei_path, 'w') as global_nuclei:
             global_join = csv.DictWriter(global_join_fd, fieldnames=self.global_join_headers, extrasaction='ignore' )
@@ -251,16 +253,13 @@ class BatchRunner:
     def _iterate_file_list(self, file_list, global_join, global_nuclei):
         for file_idx, file_path in enumerate(open(file_list)):
             file_path = file_path.strip()
-            image_path = os.path.splitext(file_path)[0] # Used for templating csv file names
             nuclei = self.nuclei_segmentor.get_image_nuclei(file_path)
             dots_filenames = self.dots_segmentor.process_image(file_path)
 
-            image_nuclei_filename = self.image_nuclei_pattern.format(image_path=image_path)
-            with open(image_nuclei_filename, 'w') as image_nuclei:
+            with open(image_nuclei_filename(file_path), 'w') as image_nuclei:
                 self._write_nuclei(nuclei, global_nuclei, image_nuclei, file_path, file_idx == 0)
 
-            image_join_output_filename = self.image_join_pattern.format(image_path=image_path)
-            with open(image_join_output_filename, 'w') as image_join:
+            with open(image_join_filename(file_path), 'w') as image_join:
                 self._write_join(self.dots_segmentor.channels, dots_filenames, nuclei, image_join, global_join, file_path)
 
     def _write_nuclei(self, nuclei, global_nuclei, image_nuclei, file_path, is_first_file):
@@ -291,7 +290,7 @@ def main():
     nuclei_segmentor = QuPathSegmentor(nuclei_channel, qupath_executable, tmp_dir, script_dir, params_override=nuclei_params_override)
     nuclei_segmentor.process_file_list(file_list)
     dots_segmentor = RSFISHSegmentor(channels=dots_channels, params_override=dots_params_override)
-    batch_runner = BatchRunner(nuclei_segmentor, dots_segmentor, directory, global_join_output_filename, global_nuclei_output_filename, image_join_output_pattern, image_nuclei_output_pattern)
+    batch_runner = BatchRunner(nuclei_segmentor, dots_segmentor, directory)
     batch_runner.run(file_list)
 
 if __name__ in ['__builtin__','__main__']:
