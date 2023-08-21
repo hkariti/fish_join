@@ -4,7 +4,6 @@ import json
 from glob import fnmatch
 
 from ij import IJ
-from ij.measure import ResultsTable
 
 import fish_join_modules.join as join
 from fish_join_modules.nuclei_segmentor import QuPathSegmentor
@@ -111,9 +110,7 @@ def main():
     if do_dots_segmentation:
         batch_runner.run(file_list)
     if show_results_table:
-        global_join_path = global_join_filename(directory)
-        rt = ResultsTable.open(global_join_path)
-        rt.show('All dots and their nuclei')
+        IJ.run("Show results for all files", "directory="+directory)
 
 
 if __name__ in ['__builtin__','__main__']:
