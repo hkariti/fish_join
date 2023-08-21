@@ -286,10 +286,13 @@ class BatchRunner:
             global_join.writerows(csv_out)
 
 
-file_list = create_file_list(directory, pattern)
-nuclei_segmentor = QuPathSegmentor(nuclei_channel, qupath_executable, tmp_dir, script_dir, params_override=nuclei_params_override)
-nuclei_segmentor.process_file_list(file_list)
-dots_segmentor = RSFISHSegmentor(channels=dots_channels, params_override=dots_params_override)
-batch_runner = BatchRunner(nuclei_segmentor, dots_segmentor, directory, global_join_output_filename, global_nuclei_output_filename, image_join_output_pattern, image_nuclei_output_pattern)
-batch_runner.run(file_list)
+def main():
+    file_list = create_file_list(directory, pattern)
+    nuclei_segmentor = QuPathSegmentor(nuclei_channel, qupath_executable, tmp_dir, script_dir, params_override=nuclei_params_override)
+    nuclei_segmentor.process_file_list(file_list)
+    dots_segmentor = RSFISHSegmentor(channels=dots_channels, params_override=dots_params_override)
+    batch_runner = BatchRunner(nuclei_segmentor, dots_segmentor, directory, global_join_output_filename, global_nuclei_output_filename, image_join_output_pattern, image_nuclei_output_pattern)
+    batch_runner.run(file_list)
 
+if __name__ in ['__builtin__','__main__']:
+    main()
