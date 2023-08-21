@@ -1,3 +1,5 @@
+#@ String image
+#@ Integer nucleus_id
 import json
 from ij import IJ, ImagePlus, WindowManager
 from ij.gui import Overlay, Roi, PolygonRoi
@@ -42,7 +44,7 @@ def annotate(image=None, nucleus_id=None):
     :param image: Path to image to open, or None to use the current image.
     :param nucleus_id: Nucleus ID to highlight or None to highlight all nuclei.
     """
-    if image is None:
+    if not image:
         _imp = WindowManager.getCurrentImage()
         if _imp is None:
             raise ValueError("No image opened")
@@ -58,7 +60,7 @@ def annotate(image=None, nucleus_id=None):
     else:
         if isinstance(nucleus_id, int):
             nucleus_id = [nucleus_id]
-        chosen_nuclei = [ n for n in nuclei if n['id'] in nucleus_id ]
+        chosen_nuclei = [ n for n in nuclei if n['id'] in nucleus_id or -1 in nucleus_id ]
 
     overlay = None
     for nucleus in chosen_nuclei:
@@ -68,5 +70,11 @@ def _get_imp_file_path(imp):
     file_info = imp.getOriginalFileInfo()
 
     if file_info:
-        return file_info.url.replace('file:', '')
+        if file_info.url:
+            return file_info.url.replace('file:', '')
+        else:
+            return file_info.filePath
     raise ValueError("No file backing this image")
+
+if __name__ in ['__builtin__', '__main__']:
+    annotate(image, nucleus_id)
