@@ -4,6 +4,7 @@ import json
 from glob import fnmatch
 
 from ij import IJ
+from ij.measure import ResultsTable
 
 import fish_join_modules.join as join
 from fish_join_modules.nuclei_segmentor import QuPathSegmentor
@@ -20,6 +21,7 @@ dots_channels = [1,2,3]
 dots_params_override = json.loads('{}')
 qupath_executable = '/Applications/QuPath.app/Contents/MacOS/QuPath'
 script_dir = '/Users/hkariti/repo/technion/fish_join/fish_join_modules/'
+show_results_table = True
 
 
 def create_file_list(directory, pattern):
@@ -102,6 +104,11 @@ def main():
     dots_segmentor = RSFISHSegmentor(channels=dots_channels, params_override=dots_params_override)
     batch_runner = BatchRunner(nuclei_segmentor, dots_segmentor, directory)
     batch_runner.run(file_list)
+    if show_results_table:
+        global_join_path = global_join_filename(directory)
+        rt = ResultsTable.open(global_join_path)
+        rt.show('All dots and their nuclei')
+
 
 if __name__ in ['__builtin__','__main__']:
     main()
