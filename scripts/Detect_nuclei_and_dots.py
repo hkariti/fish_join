@@ -3,6 +3,8 @@ import csv
 import json
 from glob import fnmatch
 
+from ij import IJ
+
 import fish_join_modules.join as join
 from fish_join_modules.nuclei_segmentor import QuPathSegmentor
 from fish_join_modules.dots_segmentor import RSFISHSegmentor
@@ -47,12 +49,14 @@ class BatchRunner:
         global_join_path = os.path.join(self.base_dir, global_join_filename)
         global_nuclei_path = os.path.join(self.base_dir, global_nuclei_filename)
 
+        IJ.log("Starting dots processing")
         with open(global_join_path, 'w') as global_join_fd, open(global_nuclei_path, 'w') as global_nuclei:
             global_join = csv.DictWriter(global_join_fd, fieldnames=self.global_join_headers, extrasaction='ignore' )
             global_join.writeheader()
             global_nuclei.write('[\n')
             self._iterate_file_list(file_list, global_join, global_nuclei)
             global_nuclei.write(']\n')
+        IJ.log("Finished processing all files")
 
     def _iterate_file_list(self, file_list, global_join, global_nuclei):
         for file_idx, file_path in enumerate(open(file_list)):
