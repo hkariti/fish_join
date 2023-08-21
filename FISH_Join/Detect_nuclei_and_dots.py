@@ -14,27 +14,32 @@ from fish_join_modules.output_filenames import global_join_filename, global_nucl
 
 tmp_dir = os.environ['TMPDIR']
 directory = "/Users/hkariti/repo/technion/fish_join/data_files"
+reuse_file_list = True
 pattern = "*_MAX.tif"
+do_nuclei_segmentation = True
 nuclei_params_override = json.loads('{}')
 nuclei_channel = 4
+do_dots_segmentation = True
 dots_channels = [1,2,3]
 dots_params_override = json.loads('{}')
 qupath_executable = '/Applications/QuPath.app/Contents/MacOS/QuPath'
 show_results_table = True
 
 
-def create_file_list(directory, pattern, tmp_dir='/tmp'):
-	file_list_path = os.path.join(tmp_dir, 'qupath_file_list')
-	file_list = open(file_list_path, 'w')
-	for path, _, filenames in os.walk(directory):
-		for filename in filenames:
-			if not fnmatch.fnmatch(filename, pattern):
-				continue
-			image_path = path + os.path.sep + filename
-			file_list.write(image_path + '\n')
-	file_list.close()
-	
-	return file_list_path
+def create_file_list(directory, pattern, tmp_dir='/tmp', reuse=False):
+    file_list_path = os.path.join(tmp_dir, 'fish_join_file_list')
+    if reuse and os.path.exists(file_list_path):
+        return file_list_path
+    file_list = open(file_list_path, 'w')
+    for path, _, filenames in os.walk(directory):
+        for filename in filenames:
+            if not fnmatch.fnmatch(filename, pattern):
+                continue
+            image_path = path + os.path.sep + filename
+            file_list.write(image_path + '\n')
+    file_list.close()
+
+    return file_list_path
 
 
 class BatchRunner:
@@ -97,12 +102,14 @@ class BatchRunner:
 
 
 def main():
-    file_list = create_file_list(directory, pattern, tmp_dir)
+    file_list = create_file_list(directory, pattern, tmp_dir, reuse_file_list)
     nuclei_segmentor = QuPathSegmentor(nuclei_channel, qupath_executable, tmp_dir, params_override=nuclei_params_override)
-    nuclei_segmentor.process_file_list(file_list)
+    if do_nuclei_segmentation:
+        nuclei_segmentor.process_file_list(file_list)
     dots_segmentor = RSFISHSegmentor(channels=dots_channels, params_override=dots_params_override)
     batch_runner = BatchRunner(nuclei_segmentor, dots_segmentor, directory)
-    batch_runner.run(file_list)
+    if do_dots_segmentation:
+        batch_runner.run(file_list)
     if show_results_table:
         global_join_path = global_join_filename(directory)
         rt = ResultsTable.open(global_join_path)
