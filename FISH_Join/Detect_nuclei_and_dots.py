@@ -1,3 +1,14 @@
+#@ File (label="Images directorory",style="directory") _directory
+#@ String (label="Filename pattern") pattern
+#@ Boolean (label="Reuse existing file list",value=True) reuse_file_list
+#@ Boolean (label="Segment nuclei",value=True) do_nuclei_segmentation
+#@ Integer (label="Nucleus channel") nuclei_channel
+#@ String (label="Nuclei segmentation params",value="{}") _nuclei_params_override
+#@ String (label="QuPath executable") qupath_executable
+#@ Boolean (label="Segment dots",value=True) do_dots_segmentation
+#@ String (label="Dots channels (comma separated)") _dots_channel
+#@ String (label="Dots segmentation params (key per channel)",value="{}") _dots_params_override
+#@ Boolean (label="Show results table when finished",value=True) show_results_table
 import os
 import csv
 import json
@@ -12,21 +23,21 @@ from fish_join_modules.output_filenames import global_join_filename, global_nucl
         image_join_filename, image_nuclei_filename
 
 tmp_dir = os.environ['TMPDIR']
-directory = "/Users/hkariti/repo/technion/fish_join/data_files"
-reuse_file_list = True
-pattern = "*_MAX.tif"
-do_nuclei_segmentation = True
-nuclei_params_override = json.loads('{}')
-nuclei_channel = 4
-do_dots_segmentation = True
-dots_channels = [1,2,3]
-dots_params_override = json.loads('{}')
-qupath_executable = '/Applications/QuPath.app/Contents/MacOS/QuPath'
-show_results_table = True
+directory = str(_directory) #"/Users/hkariti/repo/technion/fish_join/data_files"
+#pattern = "*_MAX.tif"
+#reuse_file_list = True
+#do_nuclei_segmentation = True
+nuclei_params_override = json.loads(_nuclei_params_override)
+#nuclei_channel = 4
+#do_dots_segmentation = True
+dots_channels = [ int(x.strip()) for x in _dots_channel.split(',') ]
+dots_params_override = json.loads(_dots_params_override)
+#qupath_executable = '/Applications/QuPath.app/Contents/MacOS/QuPath'
+#show_results_table = True
 
 
-def create_file_list(directory, pattern, tmp_dir='/tmp', reuse=False):
-    file_list_path = os.path.join(tmp_dir, 'fish_join_file_list')
+def create_file_list(directory, pattern, reuse=False):
+    file_list_path = os.path.join(directory, 'fish_join_file_list')
     if reuse and os.path.exists(file_list_path):
         return file_list_path
     file_list = open(file_list_path, 'w')
@@ -101,7 +112,7 @@ class BatchRunner:
 
 
 def main():
-    file_list = create_file_list(directory, pattern, tmp_dir, reuse_file_list)
+    file_list = create_file_list(directory, pattern, reuse_file_list)
     nuclei_segmentor = QuPathSegmentor(nuclei_channel, qupath_executable, tmp_dir, params_override=nuclei_params_override)
     if do_nuclei_segmentation:
         nuclei_segmentor.process_file_list(file_list)
