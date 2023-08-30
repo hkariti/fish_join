@@ -77,7 +77,7 @@ class RSFISHSegmentor:
             if type(value) is bool and value:
                 param_str += '{} '.format(key)
             elif type(value) in [list, tuple]:
-                assert len(value) == 1 # The list is to mark that this is a choice from a drop-down, not to hold several values
+                assert len(value) == 1 # The list is to mark that this is a string with spaces, not to hold several values
                 param_str += '{}=[{}] '.format(key, value[0])
             elif type(value) is float:
                 param_str += '{}={:.4f} '.format(key, value)
