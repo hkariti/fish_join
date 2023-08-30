@@ -8,6 +8,9 @@ from ij import IJ
 SCRIPT_DIR = os.path.dirname(__file__)
 
 class QuPathSegmentor:
+    """
+    Segment nuclei using QuPath on a list of image files
+    """
     _default_params = {"detectionImage": "Channel {channel}", 
                        "requestedPixelSizeMicrons": 0.0, 
                        "backgroundRadiusMicrons": 8.0, 
@@ -24,6 +27,13 @@ class QuPathSegmentor:
                        "makeMeasurements": True }
 
     def __init__(self, channel, qupath_executable='QuPath', tmp_dir='/tmp', keep_project_dir=False, params_override={}):
+        """
+        :param int channel: Image channel that contains nuclei information
+        :param str qupath_executable: Location of the QuPath command
+        :param str tmp_dir: Directory to create the QuPath project and other temporary files in
+        :param bool keep_project_dir: Whether to keep the project dir after run is finished or delete it
+        :param dict params_override: Dictionary of parameters overrides to QuPath. See also default_params()
+        """
         self.channel = channel
         self.qupath_executable = qupath_executable
         self.tmp_dir = tmp_dir
@@ -36,6 +46,13 @@ class QuPathSegmentor:
         self.params_json = json.dumps(params)
 
     def qupath_script(self, script_name, project=None, args=[]):
+        """
+        Run a QuPath script
+
+        :param str script_name: Name of script file. Scripts are assumed to be in the directory containing this module.
+        :param str project: Optional path to QuPath project directory or project file
+        :param list args: List of parameters to pass to the script
+        """
         script_path = os.path.join(SCRIPT_DIR, script_name)
         cmdline = [self.qupath_executable, 'script', script_path]
         if project is not None:
@@ -51,6 +68,14 @@ class QuPathSegmentor:
             raise
 
     def process_file_list(self, file_list_path):
+        """
+        Run QuPath on a list of files.
+
+        Raw results will be written to a geojson file according to the format {image_path}_nuclei.geojson. 
+        Use get_image_nuclei() to parse these files.
+
+        :param str file_list_path: Path to a list of files, one path per line
+        """
         qupath_project = os.path.join(self.tmp_dir, 'qupath')
         IJ.log("QuPathSegmentor: creating QuPath project")
         self.qupath_script('qupath_create_project.groovy', args=[file_list_path, qupath_project])
@@ -64,19 +89,30 @@ class QuPathSegmentor:
     def get_image_nuclei(self, image_path):
         """
         Return a list of nuclei in the image. Each nucleus object has
-        an ID and a list of polygon edges
+        an ID and a list of polygon edges. Data comes from the image's
+        geojson file created using process_file_list()
+
+        :param str image_path: Path to image
+        :return list[dict]: List of Nucleus dictionaries
         """
         nuclei_file = self._get_output_filename(image_path)
 
         return self._parse_nuclei_geojson(nuclei_file)
+
+    def default_params(self):
+        """
+        Return default QuPath parameters. Mostly useful for reference of available parameters.
+        """
+        return self._default_params
 
     def _parse_nuclei_geojson(self, geojson):
         """
         Parse QuPath's geojson file and return a list of dicts with
         each nucleus' ID and polygon vertices.
 
-        geojson can be either a path to a filename, an open geojson file
-        or a parsed geojson as a dict object.
+        :param geojson: either a path to a filename, an open geojson file
+                        or a parsed geojson as a dict object.
+        :return list[dicts]:
         """
         if isinstance(geojson, (str, unicode)):
             _geojson = json.load(open(geojson))

@@ -5,6 +5,9 @@ from ij.plugin import ChannelSplitter
 
 
 class RSFISHSegmentor:
+    """
+    Segment dots using the RS-FISH plugin
+    """
     _default_params = {
         "mode": "Advanced",
         "anisotropy": 1.0,
@@ -29,6 +32,14 @@ class RSFISHSegmentor:
     }
 
     def __init__(self, channels, result_file_pattern="{image_dir}/{image_title}_C{channel}.csv", params_override={}):
+        """
+        :param iterable channels: image channels that contain dots information (one-based)
+        :param str result_file_pattern: str.format() pattern to determine the path of the output csv.
+                                        Can use these placeholders: image_dir, image_title, channel
+        :param dict[int, dict] params_override: a dict of per-channel overrides to RS-FISH parameters.
+                                                Values should be a dictionary of parameters and their
+                                                values (int, float, string, bool). See also default_params().
+        """
         self.channels = channels
         self.result_file_pattern = result_file_pattern
 
@@ -39,6 +50,14 @@ class RSFISHSegmentor:
                 self.params[ch].update(params_override[ch])
 
     def process_image(self, file_path):
+        """
+        Run RS-FISH on all requested channels of the image in the given path. Each channel will be run
+        with the parameters given during initialization. The resulting dots will be saved to CSV files,
+        one per channel. The output file and location are determined using the result_file_pattern attribute.
+
+        :param str file_path: Path to image file
+        :return list[str]: Paths of resulting CSV file, one per channel 
+        """
         image_dir = os.path.dirname(file_path)
         IJ.log("RSFISHSegmentor: opening image: " + file_path)
         imp = IJ.openImage(file_path)
@@ -64,12 +83,26 @@ class RSFISHSegmentor:
         return output_filenames
         
     def process_channel(self, imp, results_file, params):
+        """
+        Run RS-FISH on a single-channel image and write the results to a file. This is usually run
+        via process_image().
+
+        :param ImagePlus imp: ImagePlus object with a single channel
+        :param str results_file: Path to output CSV file
+        :param dict params: Dictionary of RS-FISH parameters
+        """
         params['results_file'] = [results_file]
         params_str = self._create_param_string(params)
 
         imp.show()
         IJ.run(imp, "RS-FISH", params_str)
         imp.hide()
+
+    def default_params(self):
+        """
+        Return the default parameters passed to RS-FISH. Mostly useful for reference of available paramerters.
+        """
+        return self._default_params
 
     def _create_param_string(self, params):
         param_str = ''
