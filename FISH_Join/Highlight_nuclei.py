@@ -50,6 +50,8 @@ def annotate(image=None, nucleus_id=None):
             raise ValueError("No image opened")
     else:
         _imp = IJ.openImage(image)
+        if _imp is None:
+            raise FileNotFoundError(image)
     image_path = _get_imp_file_path(_imp)
     imp = _imp.duplicate()  # Create a duplicate of the image to prevent modification of the original
 

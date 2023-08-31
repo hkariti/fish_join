@@ -1,4 +1,5 @@
 #@ File (label="Images directorory",style="directory") _directory
+#@ String (visibility=MESSAGE, value="<html><span style=':hover { color: red }'>hello</span></html>", required=false) msg
 #@ String (label="Filename pattern") pattern
 #@ Boolean (label="Reuse existing file list",value=True) reuse_file_list
 #@ Boolean (label="Segment nuclei",value=True) do_nuclei_segmentation
@@ -13,6 +14,7 @@ import os
 import csv
 import json
 from glob import fnmatch
+import tempfile
 
 from ij import IJ
 
@@ -22,7 +24,7 @@ from fish_join_modules.dots_segmentor import RSFISHSegmentor
 from fish_join_modules.output_filenames import global_join_filename, global_nuclei_filename, \
         image_join_filename, image_nuclei_filename
 
-tmp_dir = os.environ['TMPDIR']
+tmp_dir = tempfile.gettempdir()
 directory = str(_directory) #"/Users/hkariti/repo/technion/fish_join/data_files"
 #pattern = "*_MAX.tif"
 #reuse_file_list = True
@@ -66,7 +68,7 @@ class BatchRunner:
         global_nuclei_path = global_nuclei_filename(self.base_dir)
 
         IJ.log("Starting dots processing")
-        with open(global_join_path, 'w') as global_join_fd, open(global_nuclei_path, 'w') as global_nuclei:
+        with open(global_join_path, 'wb') as global_join_fd, open(global_nuclei_path, 'w') as global_nuclei:
             global_join = csv.DictWriter(global_join_fd, fieldnames=self.global_join_headers, extrasaction='ignore' )
             global_join.writeheader()
             global_nuclei.write('[\n')
@@ -83,7 +85,7 @@ class BatchRunner:
             with open(image_nuclei_filename(file_path), 'w') as image_nuclei:
                 self._write_nuclei(nuclei, global_nuclei, image_nuclei, file_path, file_idx == 0)
 
-            with open(image_join_filename(file_path), 'w') as image_join:
+            with open(image_join_filename(file_path), 'wb') as image_join:
                 self._write_join(self.dots_segmentor.channels, dots_filenames, nuclei, image_join, global_join, file_path)
 
     def _write_nuclei(self, nuclei, global_nuclei, image_nuclei, file_path, is_first_file):
