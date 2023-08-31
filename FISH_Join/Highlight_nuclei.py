@@ -3,10 +3,48 @@
 #@ Boolean (label="Populate ROI with dots") populate_roi
 import json
 from ij import IJ, ImagePlus, WindowManager
-from ij.gui import Overlay, Roi, PolygonRoi
+from ij.gui import Overlay, Roi, PolygonRoi, PointRoi
+from ij.plugin.frame import RoiManager
+import csv
 
 import fish_join_modules.output_filenames as output_filenames
 
+
+def annotate(image=None, nucleus_id=None, populate_roi=True):
+    """
+    Annotate nuclei on the given image.
+
+    :param image: Path to image to open, or None to use the current image.
+    :param nucleus_id: Either ID or list of IDs of Nucleui to highlight. To highlight all
+                       nuclei, pass None or ID of -1.
+    :param populate_roi: Populate ROI with dots for each nucleus
+    """
+    if not image:
+        _imp = WindowManager.getCurrentImage()
+        if _imp is None:
+            raise ValueError("No image opened")
+    else:
+        _imp = IJ.openImage(image)
+        if _imp is None:
+            raise FileNotFoundError(image)
+    image_path = _get_imp_file_path(_imp)
+    imp = _imp.duplicate()  # Create a duplicate of the image to prevent modification of the original
+
+    nuclei_path = output_filenames.image_nuclei_filename(image_path)
+    nuclei = json.load(open(nuclei_path))
+    if nucleus_id is None:
+        chosen_nuclei = nuclei
+    else:
+        if isinstance(nucleus_id, int):
+            nucleus_id = [nucleus_id]
+        chosen_nuclei = [ n for n in nuclei if n['id'] in nucleus_id or -1 in nucleus_id ]
+
+    overlay = None
+    for nucleus in chosen_nuclei:
+        overlay = add_polygon_overlay(imp, nucleus['polygon'], nucleus['id'], overlay)
+
+    if populate_roi:
+        add_dots_roi(image_path, [n['id'] for n in chosen_nuclei])
 
 def add_polygon_overlay(imp, polygon_edges, label=None, overlay=None):
     """
@@ -38,36 +76,35 @@ def add_polygon_overlay(imp, polygon_edges, label=None, overlay=None):
 
     return overlay
     
-def annotate(image=None, nucleus_id=None):
+def add_dots_roi(image_path, chosen_nuclei):
     """
-    Annotate nuclei on the given image.
+    Add the dots inside the given nuclei to the current image's ROI
 
-    :param image: Path to image to open, or None to use the current image.
-    :param nucleus_id: Nucleus ID to highlight or None to highlight all nuclei.
+    :param image_path: Path to current image, used to find the dots-nuclei CSV file
+    :param chosen_nuclei: List of nuclei IDs
     """
-    if not image:
-        _imp = WindowManager.getCurrentImage()
-        if _imp is None:
-            raise ValueError("No image opened")
-    else:
-        _imp = IJ.openImage(image)
-        if _imp is None:
-            raise FileNotFoundError(image)
-    image_path = _get_imp_file_path(_imp)
-    imp = _imp.duplicate()  # Create a duplicate of the image to prevent modification of the original
+    # Get the RoiManager instance
+    roi_manager = RoiManager.getInstance()
 
-    nuclei_path = output_filenames.image_nuclei_filename(image_path)
-    nuclei = json.load(open(nuclei_path))
-    if nucleus_id is None:
-        chosen_nuclei = nuclei
-    else:
-        if isinstance(nucleus_id, int):
-            nucleus_id = [nucleus_id]
-        chosen_nuclei = [ n for n in nuclei if n['id'] in nucleus_id or -1 in nucleus_id ]
-
-    overlay = None
-    for nucleus in chosen_nuclei:
-        overlay = add_polygon_overlay(imp, nucleus['polygon'], nucleus['id'], overlay)
+    # If RoiManager is not open, create a new instance
+    if roi_manager is None:
+        roi_manager = RoiManager()
+        roi_manager.setVisible(True)
+    dots_path = output_filenames.image_join_filename(image_path)
+    with open(dots_path, 'rb') as dots:
+        for dot in csv.DictReader(dots):
+            try:
+                n = int(dot['nucleus_id'])
+            except ValueError:
+                # We don't care about dots that don't fit to any nucleus
+                continue
+            if n in chosen_nuclei:
+                x = float(dot['x'])
+                y = float(dot['y'])
+                c = int(dot['channel'])
+                roi = PointRoi(x, y)
+                roi.setName('{x}_{y}_{c}_{n}'.format(x=x, y=y, c=c, n=n))
+                roi_manager.addRoi(roi)
 
 def _get_imp_file_path(imp):
     file_info = imp.getOriginalFileInfo()
@@ -81,4 +118,4 @@ def _get_imp_file_path(imp):
 
 if __name__ in ['__builtin__', '__main__']:
     nuclei_ids_ints = [ int(x) for x in nucleui_ids.split(',') ]
-    annotate(image, nuclei_ids_ints)
+    annotate(image, nuclei_ids_ints, populate_roi=populate_roi)
