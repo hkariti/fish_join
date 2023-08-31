@@ -1,5 +1,6 @@
-#@ String image
-#@ Integer nucleus_id
+#@ String (label="Image file (empty for current image)") image
+#@ String (label="Nuclei ids, comma separated (-1 for all)") nucleui_ids
+#@ Boolean (label="Populate ROI with dots") populate_roi
 import json
 from ij import IJ, ImagePlus, WindowManager
 from ij.gui import Overlay, Roi, PolygonRoi
@@ -79,4 +80,5 @@ def _get_imp_file_path(imp):
     raise ValueError("No file backing this image")
 
 if __name__ in ['__builtin__', '__main__']:
-    annotate(image, nucleus_id)
+    nuclei_ids_ints = [ int(x) for x in nucleui_ids.split(',') ]
+    annotate(image, nuclei_ids_ints)
