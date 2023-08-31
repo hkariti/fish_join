@@ -14,6 +14,7 @@ import csv
 import json
 from glob import fnmatch
 import tempfile
+import itertools
 
 from ij import IJ
 
@@ -95,13 +96,20 @@ class BatchRunner:
                 global_nuclei.write(',' + json.dumps(n))
         image_nuclei.write(']\n')
 
-    def _write_join(self, channels, filenames, nuclei, image_join, global_join, file_path):
+    def _write_join(self, channels, filenames, nuclei, image_join, global_join, file_path, sort=True):
         image_join_output = csv.DictWriter(image_join, extrasaction='ignore', fieldnames=self.image_join_headers)
-        image_join_output.writeheader()
+        csv_out = []
         for ch, csv_file in zip(self.dots_segmentor.channels, filenames):
-            csv_out = join.join_from_csv(nuclei, csv_file, dict(channel=ch, filename=file_path))
-            image_join_output.writerows(csv_out)
-            global_join.writerows(csv_out)
+            new_csv = join.join_from_csv(nuclei, csv_file, dict(channel=ch, filename=file_path))
+            csv_out.append(new_csv)
+        csv_out = itertools.chain.from_iterable(csv_out)
+
+        if sort:
+            # null nucleus check is used to put all null nuclei at the bottom
+            csv_out = sorted(csv_out, key=lambda d: (d['nucleus_id'] is None, d['nucleus_id'], d['channel']))
+        image_join_output.writeheader()
+        image_join_output.writerows(csv_out)
+        global_join.writerows(csv_out)
 
 
 def main():
