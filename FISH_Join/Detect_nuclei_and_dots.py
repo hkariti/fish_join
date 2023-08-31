@@ -1,5 +1,4 @@
 #@ File (label="Images directorory",style="directory") _directory
-#@ String (visibility=MESSAGE, value="<html><span style=':hover { color: red }'>hello</span></html>", required=false) msg
 #@ String (label="Filename pattern") pattern
 #@ Boolean (label="Reuse existing file list",value=True) reuse_file_list
 #@ Boolean (label="Segment nuclei",value=True) do_nuclei_segmentation
@@ -24,18 +23,12 @@ from fish_join_modules.dots_segmentor import RSFISHSegmentor
 from fish_join_modules.output_filenames import global_join_filename, global_nuclei_filename, \
         image_join_filename, image_nuclei_filename
 
+
 tmp_dir = tempfile.gettempdir()
-directory = str(_directory) #"/Users/hkariti/repo/technion/fish_join/data_files"
-#pattern = "*_MAX.tif"
-#reuse_file_list = True
-#do_nuclei_segmentation = True
+directory = str(_directory)
 nuclei_params_override = json.loads(_nuclei_params_override)
-#nuclei_channel = 4
-#do_dots_segmentation = True
 dots_channels = [ int(x.strip()) for x in _dots_channel.split(',') ]
 dots_params_override = json.loads(_dots_params_override)
-#qupath_executable = '/Applications/QuPath.app/Contents/MacOS/QuPath'
-#show_results_table = True
 
 
 def create_file_list(directory, pattern, reuse=False):
@@ -109,8 +102,6 @@ class BatchRunner:
             csv_out = join.join_from_csv(nuclei, csv_file, dict(channel=ch, filename=file_path))
             image_join_output.writerows(csv_out)
             global_join.writerows(csv_out)
-
-
 
 
 def main():
