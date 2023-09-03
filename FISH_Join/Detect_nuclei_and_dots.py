@@ -27,9 +27,15 @@ from fish_join_modules.output_filenames import global_join_filename, global_nucl
 
 tmp_dir = tempfile.gettempdir()
 directory = str(_directory)
-nuclei_params_override = json.loads(_nuclei_params_override)
+if _nuclei_params_override.strip():
+    nuclei_params_override = json.loads(_nuclei_params_override)
+else:
+    nuclei_params_override = {}
 dots_channels = [ int(x.strip()) for x in _dots_channel.split(',') ]
-dots_params_override = json.loads(_dots_params_override)
+if _dots_params_override.strip():
+    dots_params_override = json.loads(_dots_params_override)
+else:
+    dots_params_override = {}
 
 
 def create_file_list(directory, pattern, reuse=False):
