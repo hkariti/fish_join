@@ -131,7 +131,10 @@ class QuPathSegmentor:
                 continue
             try:
                 polygon = feature['nucleusGeometry']['coordinates'][0]
-                nuclei.append(dict(id=index, polygon=polygon))
+                centroid = calc_centroid(polygon)
+                area = feature["properties"]['measurements']['Nucleus: Area']
+                nuclei.append(dict(id=index, polygon=polygon,
+                                   centroid=centroid, area=area))
             except (KeyError, IndexError):
                 IJ.log("parse_nuclei_geojson: nuclei {} is bad, skipping".format(index))
                 continue
@@ -144,3 +147,20 @@ class QuPathSegmentor:
         filename = os.path.splitext(image_file_path)[0]
 
         return filename + '_nuclei.geojson'
+
+def calc_centroid(vertices):
+    x, y = 0, 0
+    n = len(vertices)
+    signed_area = 0
+    for i in range(len(vertices)):
+        x0, y0 = vertices[i]
+        x1, y1 = vertices[(i + 1) % n]
+        # shoelace formula
+        area = (x0 * y1) - (x1 * y0)
+        signed_area += area
+        x += (x0 + x1) * area
+        y += (y0 + y1) * area
+    signed_area *= 0.5
+    x /= 6 * signed_area
+    y /= 6 * signed_area
+    return x, y
