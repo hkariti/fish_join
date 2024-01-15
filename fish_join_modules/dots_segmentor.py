@@ -46,8 +46,10 @@ class RSFISHSegmentor:
         self.params = {}
         for ch in self.channels:
             self.params[ch] = self._default_params.copy()
-            if ch in params_override:
-                self.params[ch].update(params_override[ch])
+            # Key in params_override can be a string
+            if ch in params_override or str(ch) in params_override:
+                ch_override = params_override.get(ch, str(ch))
+                self.params[ch].update(ch_override)
 
     def process_image(self, file_path):
         """
