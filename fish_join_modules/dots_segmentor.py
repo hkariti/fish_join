@@ -48,7 +48,10 @@ class RSFISHSegmentor:
             self.params[ch] = self._default_params.copy()
             # Key in params_override can be a string
             if ch in params_override or str(ch) in params_override:
-                ch_override = params_override.get(ch, str(ch))
+                try:
+                    ch_override = params_override[ch]
+                except KeyError:
+                    ch_override = params_override[str(ch)]
                 self.params[ch].update(ch_override)
 
     def process_image(self, file_path):
