@@ -128,7 +128,7 @@ def main():
     if do_dots_segmentation:
         batch_runner.run(file_list)
     if show_results_table:
-        IJ.run("Show results for all files", f"directory=[{directory}]")
+        IJ.run("Show results for all files", "directory=[{}]".format(directory))
 
 
 if __name__ in ['__builtin__','__main__']:
