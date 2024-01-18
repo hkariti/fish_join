@@ -20,7 +20,6 @@ class RSFISHSegmentor:
         "support": 3,
         "min_inlier_ratio": 0.10,
         "max_error": 1.5,
-        "spot_intensity_threshold": 3094.59,
         "background": "[No background subtraction]",
         "background_subtraction_max_error": 0.05,
         "background_subtraction_min_inlier_ratio": 0.10,
