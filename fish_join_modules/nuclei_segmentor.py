@@ -11,7 +11,7 @@ class QuPathSegmentor:
     """
     Segment nuclei using QuPath on a list of image files
     """
-    _default_params = {"detectionImage": "Channel {channel}", 
+    _default_params_microns = {"detectionImage": "Channel {channel}",
                        "requestedPixelSizeMicrons": 0.0, 
                        "backgroundRadiusMicrons": 8.0, 
                        "backgroundByReconstruction": True, 
@@ -26,12 +26,27 @@ class QuPathSegmentor:
                        "smoothBoundaries": True, 
                        "makeMeasurements": True }
 
-    def __init__(self, channel, qupath_executable='QuPath', tmp_dir='/tmp', keep_project_dir=False, params_override={}):
+    _default_params_pixels = {"detectionImage": "Channel {channel}",
+                       "backgroundRadius": 0.0,
+                       "backgroundByReconstruction": True,
+                       "medianRadius": 0.0,
+                       "sigma": 150,
+                       "minArea": 10000.0,
+                       "maxArea": 80000.0,
+                       "threshold": 150.0,
+                       "watershedPostProcess": True,
+                       "cellExpansion": 5.0,
+                       "includeNuclei": True,
+                       "smoothBoundaries": True,
+                       "makeMeasurements": True }
+
+    def __init__(self, channel, qupath_executable='QuPath', tmp_dir='/tmp', keep_project_dir=False, units='microns', params_override={}):
         """
         :param int channel: Image channel that contains nuclei information
         :param str qupath_executable: Location of the QuPath command
         :param str tmp_dir: Directory to create the QuPath project and other temporary files in
         :param bool keep_project_dir: Whether to keep the project dir after run is finished or delete it
+        :param str units: Which units the params have. Can be microns or pixels.
         :param dict params_override: Dictionary of parameters overrides to QuPath. See also default_params()
         """
         self.channel = channel
@@ -40,7 +55,13 @@ class QuPathSegmentor:
         self._qupath_project_filename = 'project.qpproj'
         self.keep_project_dir = keep_project_dir
 
-        params = self._default_params.copy()
+        if units == 'microns':
+            params = self._default_params_microns.copy()
+        elif units == 'pixels':
+            params = self._default_params_pixels.copy()
+        else:
+            raise ValueError("units must be pixels or microns. Got: {}".format(units))
+
         params.update(params_override)
         params['detectionImage'] = params['detectionImage'].format(channel=channel)
         self.params_json = json.dumps(params)

@@ -2,6 +2,7 @@
 #@ String (label="Filename pattern") pattern
 #@ Boolean (label="Reuse existing file list",value=True) reuse_file_list
 #@ Boolean (label="Segment nuclei",value=True) do_nuclei_segmentation
+#@ Boolean (label="Pixels?",value=False) qupath_pixels
 #@ Integer (label="Nucleus channel") nuclei_channel
 #@ String (label="Nuclei segmentation params",value="{}") _nuclei_params_override
 #@ String (label="QuPath executable") qupath_executable
@@ -120,7 +121,11 @@ class BatchRunner:
 
 def main():
     file_list = create_file_list(directory, pattern, reuse_file_list)
-    nuclei_segmentor = QuPathSegmentor(nuclei_channel, qupath_executable, tmp_dir, params_override=nuclei_params_override)
+    if is_pixels:
+        units = 'pixels'
+    else:
+        units = 'microns'
+    nuclei_segmentor = QuPathSegmentor(nuclei_channel, qupath_executable, tmp_dir, units, params_override=nuclei_params_override)
     if do_nuclei_segmentation:
         nuclei_segmentor.process_file_list(file_list)
     dots_segmentor = RSFISHSegmentor(channels=dots_channels, params_override=dots_params_override)
