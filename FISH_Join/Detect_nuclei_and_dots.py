@@ -125,7 +125,7 @@ def main():
         units = 'pixels'
     else:
         units = 'microns'
-    nuclei_segmentor = QuPathSegmentor(nuclei_channel, qupath_executable, tmp_dir, units, params_override=nuclei_params_override)
+    nuclei_segmentor = QuPathSegmentor(nuclei_channel, qupath_executable, tmp_dir, units=units, params_override=nuclei_params_override)
     if do_nuclei_segmentation:
         nuclei_segmentor.process_file_list(file_list)
     dots_segmentor = RSFISHSegmentor(channels=dots_channels, params_override=dots_params_override)
