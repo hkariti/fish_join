@@ -121,7 +121,7 @@ class BatchRunner:
 
 def main():
     file_list = create_file_list(directory, pattern, reuse_file_list)
-    if is_pixels:
+    if qupath_pixels:
         units = 'pixels'
     else:
         units = 'microns'
