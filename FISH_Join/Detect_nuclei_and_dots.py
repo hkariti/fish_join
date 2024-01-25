@@ -9,6 +9,7 @@
 #@ Boolean (label="Segment dots",value=True) do_dots_segmentation
 #@ String (label="Dots channels (comma separated)") _dots_channel
 #@ String (label="Dots segmentation params (key per channel)",value="{}") _dots_params_override
+#@ File (label="Per-file parameters (csv)", required=false) _per_file_params
 #@ Boolean (label="Show results table when finished",value=True) show_results_table
 import os
 import csv
@@ -24,6 +25,7 @@ from fish_join_modules.nuclei_segmentor import QuPathSegmentor
 from fish_join_modules.dots_segmentor import RSFISHSegmentor
 from fish_join_modules.output_filenames import global_join_filename, global_nuclei_filename, \
         image_join_filename, image_nuclei_filename
+from fish_join_modules.per_file_params import read_per_file_params
 
 
 tmp_dir = tempfile.gettempdir()
@@ -37,6 +39,7 @@ if _dots_params_override.strip():
     dots_params_override = json.loads(_dots_params_override)
 else:
     dots_params_override = {}
+per_file_params_filename = str(_per_file_params)
 
 
 def create_file_list(directory, pattern, reuse=False):
@@ -64,7 +67,7 @@ class BatchRunner:
         self.dots_segmentor = dots_segmentor
         self.base_dir = base_directory
 
-    def run(self, file_list):
+    def run(self, file_list, per_file_params={}):
         global_join_path = global_join_filename(self.base_dir)
         global_nuclei_path = global_nuclei_filename(self.base_dir)
 
@@ -73,15 +76,16 @@ class BatchRunner:
             global_join = csv.DictWriter(global_join_fd, fieldnames=self.global_join_headers, extrasaction='ignore' )
             global_join.writeheader()
             global_nuclei.write('[\n')
-            self._iterate_file_list(file_list, global_join, global_nuclei)
+            self._iterate_file_list(file_list, global_join, global_nuclei, per_file_params)
             global_nuclei.write(']\n')
         IJ.log("Finished processing all files")
 
-    def _iterate_file_list(self, file_list, global_join, global_nuclei):
+    def _iterate_file_list(self, file_list, global_join, global_nuclei, per_file_params={}):
         for file_idx, file_path in enumerate(open(file_list)):
             file_path = file_path.strip()
+            file_params = per_file_params.get(file_path, {})
             nuclei = self.nuclei_segmentor.get_image_nuclei(file_path)
-            dots_filenames = self.dots_segmentor.process_image(file_path)
+            dots_filenames = self.dots_segmentor.process_image(file_path, file_params)
 
             with open(image_nuclei_filename(file_path), 'w') as image_nuclei:
                 self._write_nuclei(nuclei, global_nuclei, image_nuclei, file_path, file_idx == 0)
@@ -120,18 +124,22 @@ class BatchRunner:
 
 
 def main():
+    IJ.log("Building file list")
     file_list = create_file_list(directory, pattern, reuse_file_list)
+    per_file_nuclei_params, per_file_dots_params = read_per_file_params(per_file_params_filename, directory, nuclei_channel, dots_channels)
+    if per_file_nuclei_params or per_file_dots_params:
+        IJ.log("Using per-file param overrides file from {}".format(per_file_params_filename))
     if qupath_pixels:
         units = 'pixels'
     else:
         units = 'microns'
     nuclei_segmentor = QuPathSegmentor(nuclei_channel, qupath_executable, tmp_dir, units=units, params_override=nuclei_params_override)
     if do_nuclei_segmentation:
-        nuclei_segmentor.process_file_list(file_list)
+        nuclei_segmentor.process_file_list(file_list, per_file_nuclei_params)
     dots_segmentor = RSFISHSegmentor(channels=dots_channels, params_override=dots_params_override)
     batch_runner = BatchRunner(nuclei_segmentor, dots_segmentor, directory)
     if do_dots_segmentation:
-        batch_runner.run(file_list)
+        batch_runner.run(file_list, per_file_dots_params)
     if show_results_table:
         IJ.run("Show results for all files", "directory=[{}]".format(directory))
 

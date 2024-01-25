@@ -88,7 +88,7 @@ class QuPathSegmentor:
             IJ.log("QuPathSegmentor: Failed to run script {}, errcode {}".format(script_name, e.returncode))
             raise
 
-    def process_file_list(self, file_list_path):
+    def process_file_list(self, file_list_path, per_file_params={}):
         """
         Run QuPath on a list of files.
 
@@ -96,12 +96,14 @@ class QuPathSegmentor:
         Use get_image_nuclei() to parse these files.
 
         :param str file_list_path: Path to a list of files, one path per line
+        :param dict per_file_params: Per-file param overrides
         """
         qupath_project = os.path.join(self.tmp_dir, 'qupath')
         IJ.log("QuPathSegmentor: creating QuPath project")
         self.qupath_script('qupath_create_project.groovy', args=[file_list_path, qupath_project])
         IJ.log("QuPathSegmentor: detecting nuclei")
-        self.qupath_script( 'qupath_get_nuclei.groovy', args=[self.params_json], project=qupath_project)
+        per_file_params_json = json.dumps(per_file_params)
+        self.qupath_script( 'qupath_get_nuclei.groovy', args=[self.params_json, per_file_params_json], project=qupath_project)
         if not self.keep_project_dir:
             IJ.log("QuPathSegmentor: cleaning up QuPath project")
             shutil.rmtree(qupath_project)

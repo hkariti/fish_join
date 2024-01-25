@@ -53,13 +53,14 @@ class RSFISHSegmentor:
                     ch_override = params_override[str(ch)]
                 self.params[ch].update(ch_override)
 
-    def process_image(self, file_path):
+    def process_image(self, file_path, file_params={}):
         """
         Run RS-FISH on all requested channels of the image in the given path. Each channel will be run
         with the parameters given during initialization. The resulting dots will be saved to CSV files,
         one per channel. The output file and location are determined using the result_file_pattern attribute.
 
         :param str file_path: Path to image file
+        :param dict file_params: File-specific params overrides, with a key for each channel
         :return list[str]: Paths of resulting CSV file, one per channel 
         """
         image_dir = os.path.dirname(file_path)
@@ -74,7 +75,11 @@ class RSFISHSegmentor:
         for ch in self.channels:
             IJ.log("RSFISHSegmentor: {}: processing channel {}".format(image_title, ch))
             imp_ch = imp_channels[ch-1]
-            params_ch = self.params[ch]
+            params_ch = self.params[ch].copy()
+            if ch in file_params:
+                IJ.log("RSFISHSegmentor: {}: using file params {}".format(image_title, file_params[ch]))
+                params_ch.update(file_params[ch])
+
             result_file_path = self.result_file_pattern.format(image_dir=image_dir, image_title=image_title, channel=ch)
             IJ.log("RSFISHSegmentor: {}: channel {}: saving to {}".format(image_title, ch, result_file_path))
             self.process_channel(imp_ch, result_file_path, params_ch)
