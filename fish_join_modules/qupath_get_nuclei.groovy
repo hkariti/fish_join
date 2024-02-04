@@ -30,6 +30,7 @@ createFullImageAnnotation(true)
 def param_overrides = jsonObjectToMap(per_file_params.get(imgPath, new JSONObject("{}")))
 def qupath_params = global_qupath_params + param_overrides
 def qupath_params_json = (new JSONObject(qupath_params)).toString()
+println("QuPathSegmentor: Running on image ${imgPath} with these params: ${qupath_params_json}")
 runPlugin('qupath.imagej.detect.cells.WatershedCellDetection', qupath_params_json)
 selectDetections()
 exportSelectedObjectsToGeoJson(targetGeo, "FEATURE_COLLECTION")

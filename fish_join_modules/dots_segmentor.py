@@ -77,9 +77,9 @@ class RSFISHSegmentor:
             imp_ch = imp_channels[ch-1]
             params_ch = self.params[ch].copy()
             if ch in file_params:
-                IJ.log("RSFISHSegmentor: {}: using file params {}".format(image_title, file_params[ch]))
                 params_ch.update(file_params[ch])
 
+            IJ.log("RSFISHSegmentor: {}: channel {}: using params {}".format(image_title, ch, params_ch))
             result_file_path = self.result_file_pattern.format(image_dir=image_dir, image_title=image_title, channel=ch)
             IJ.log("RSFISHSegmentor: {}: channel {}: saving to {}".format(image_title, ch, result_file_path))
             self.process_channel(imp_ch, result_file_path, params_ch)
