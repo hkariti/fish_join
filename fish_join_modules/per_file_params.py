@@ -6,8 +6,10 @@ def typify(value):
     try:
         return int(value)
     except:
-        return float(value)
-    return value
+        try:
+            return float(value)
+        except:
+            return value
 
 def _parse_row(row_dict, nuclei_channel, dots_channels):
     filename = row_dict.pop('filename')
