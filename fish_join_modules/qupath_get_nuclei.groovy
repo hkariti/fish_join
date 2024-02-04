@@ -23,15 +23,13 @@ def jsonObjectToMap(JSONObject jsonObject) {
 def per_file_params = jsonObjectToMap(new JSONObject(per_file_params_json))
 def global_qupath_params = jsonObjectToMap(new JSONObject(global_qupath_params_json))
 
-getProject().getImageList().each { img ->
-    def imgPath = img.readImageData().getServer().getURIs()[0].getPath()
-    def targetGeo = imgPath.take(imgPath.lastIndexOf('.')) + '_nuclei.geojson'
-    setImageType('FLUORESCENCE');
-    createFullImageAnnotation(true)
-    def param_overrides = jsonObjectToMap(per_file_params.get(imgPath, new JSONObject("{}")))
-    def qupath_params = global_qupath_params + param_overrides
-    def qupath_params_json = (new JSONObject(qupath_params)).toString()
-    runPlugin('qupath.imagej.detect.cells.WatershedCellDetection', qupath_params_json)
-    selectDetections()
-    exportSelectedObjectsToGeoJson(targetGeo, "FEATURE_COLLECTION")
- }
+def imgPath = getCurrentImageData().getServer().getURIs()[0].getPath()
+def targetGeo = imgPath.take(imgPath.lastIndexOf('.')) + '_nuclei.geojson'
+setImageType('FLUORESCENCE');
+createFullImageAnnotation(true)
+def param_overrides = jsonObjectToMap(per_file_params.get(imgPath, new JSONObject("{}")))
+def qupath_params = global_qupath_params + param_overrides
+def qupath_params_json = (new JSONObject(qupath_params)).toString()
+runPlugin('qupath.imagej.detect.cells.WatershedCellDetection', qupath_params_json)
+selectDetections()
+exportSelectedObjectsToGeoJson(targetGeo, "FEATURE_COLLECTION")
